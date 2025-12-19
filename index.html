@@ -111,6 +111,18 @@
     .btn:hover{transform: translateY(-1px); box-shadow:0 14px 32px rgba(211,92,16,.32);}
     .btn.ghost{background: var(--card); color: var(--text); border-color: var(--border); box-shadow:none;}
     .btn.ghost:hover{border-color: var(--accent); color: var(--accent);}
+    .reveal-btn{
+      display:inline-flex; align-items:center; gap:8px;
+      padding:8px 12px;
+      background:#fff3eb;
+      color: var(--accent-dark);
+      border:1px dashed var(--accent);
+      border-radius:10px;
+      font-weight:800;
+      cursor:pointer;
+      transition: transform .1s ease, box-shadow .1s ease, border-color .1s ease;
+    }
+    .reveal-btn:hover{transform: translateY(-1px); border-color: var(--accent-dark); box-shadow:0 10px 22px rgba(211,92,16,.18);}
     .hero{
       display:grid; grid-template-columns: 1.1fr .9fr; gap:22px;
       margin:32px 0 20px;
@@ -169,6 +181,7 @@
       display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
     }
     .cta-title{margin:0; font-size:22px; font-weight:800; letter-spacing:0.2px;}
+    .cta-phone{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
     .cta-sub{margin:4px 0 0; color:var(--text); font-size:16px; max-width:640px;}
     .cta-actions{display:flex; gap:10px; flex-wrap:wrap;}
     .grid{display:grid; gap:14px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));}
@@ -304,9 +317,11 @@
     .contacts{display:grid; gap:12px; grid-template-columns:1.1fr .9fr;}
     @media (max-width:820px){ .contacts{grid-template-columns:1fr;} }
     .contact-card{padding:18px;}
+    .phone-row{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
     .phone-big{font-size:28px; font-weight:800; margin:0;}
     .small{font-size:16px; color:var(--muted);}
     .footer{margin:28px 0 0; padding:16px 0 30px; color:var(--muted); font-size:14px;}
+    .hidden{display:none !important;}
     .sr-only{
       position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden;
       clip: rect(0,0,0,0); white-space:nowrap; border:0;
@@ -362,10 +377,6 @@
           <span class="badge">Опыт 5 лет • Работа по договору</span>
         </div>
 
-        <div class="top-actions" style="margin-top:10px">
-          <a class="btn" data-phone>Позвонить</a>
-        </div>
-
         <div class="notice">
           Расскажите объект, диаметры и объём — озвучим сроки и цену сразу по телефону.
         </div>
@@ -380,11 +391,8 @@
     <section class="cta-strip">
       <div class="cta-inner">
         <div class="cta-text">
-          <p class="cta-title">Быстро на связи: +7 916 739-76-28</p>
+          <p class="cta-title cta-phone">Быстро на связи: <span data-phone-text>+7 (___) ___-__-__</span> <button class="reveal-btn" type="button" data-phone-reveal>Показать номер</button></p>
           <p class="cta-sub">Обсудим объект, диаметр, объём — назовём сроки и цену. Работаем по договору, есть гарантия.</p>
-        </div>
-        <div class="cta-actions">
-          <a class="btn" data-phone>Позвонить</a>
         </div>
       </div>
     </section>
@@ -489,9 +497,9 @@
       <div class="contacts">
         <div class="card contact-card">
           <p class="small" style="margin-top:0;">Свяжитесь напрямую — обсудим объект и объём.</p>
-          <p class="phone-big" data-phone-text>+7 (___) ___-__-__</p>
-          <div class="top-actions" style="margin-top:8px">
-            <a class="btn" data-phone>Позвонить</a>
+          <div class="phone-row">
+            <p class="phone-big" data-phone-text>+7 (___) ___-__-__</p>
+            <button class="reveal-btn" type="button" data-phone-reveal>Показать номер</button>
           </div>
           <p class="small" style="margin-top:10px">График: ежедневно с 8:00 до 20:00 (по договорённости).</p>
           <p class="small" style="margin-top:6px">Выезд: Москва, МО. Другие регионы — обсуждаем.</p>
@@ -526,7 +534,6 @@
           <div style="margin-top:6px">Минимальный заказ от 25 000 ₽ • Стоимость договорная</div>
         </div>
         <div class="top-actions">
-          <a class="btn ghost" data-phone>Позвонить</a>
         </div>
       </div>
 
@@ -551,10 +558,29 @@
       return raw;
     }
 
-    function setContacts(){
+    function maskPhone(raw){
+      const digits = raw.replace(/\D/g, "");
+      if (digits.length === 11 && digits.startsWith("7")){
+        return `+7 (${digits.slice(1,4)}) ***-**-${digits.slice(9)}`;
+      }
+      return raw.replace(/\d(?=\d{2})/g, "*");
+    }
+
+    function initPhoneDisplay(){
       const formatted = formatPhone(PHONE);
+      const masked = maskPhone(PHONE);
+
       document.querySelectorAll("[data-phone]").forEach(a => a.href = "tel:" + PHONE);
-      document.querySelectorAll("[data-phone-text]").forEach(el => el.textContent = formatted);
+      document.querySelectorAll("[data-phone-text]").forEach(el => el.textContent = masked);
+
+      const reveal = () => {
+        document.querySelectorAll("[data-phone-text]").forEach(el => el.textContent = formatted);
+        document.querySelectorAll("[data-phone-reveal]").forEach(btn => btn.classList.add("hidden"));
+        if (typeof ym === "function") { ym(105927324, "reachGoal", "phone_revealed"); }
+        document.dispatchEvent(new CustomEvent("phone:reveal", {detail:{phone: PHONE}}));
+      };
+
+      document.querySelectorAll("[data-phone-reveal]").forEach(btn => btn.addEventListener("click", reveal));
     }
 
     function initSlider(){
@@ -604,7 +630,7 @@
 
     document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("year").textContent = new Date().getFullYear();
-      setContacts();
+      initPhoneDisplay();
       initSlider();
     });
   </script>
