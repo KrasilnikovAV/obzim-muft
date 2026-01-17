@@ -570,21 +570,49 @@
       return raw.replace(/\d(?=\d{2})/g, "*");
     }
 
-    function initPhoneDisplay(){
+    function initPhoneDisplay() {
       const formatted = formatPhone(PHONE);
       const masked = maskPhone(PHONE);
+      
+      // Кнопки "Позвонить" (ссылки)
+      const callButtons = document.querySelectorAll("[data-phone]");
+      // Кнопки "Показать номер"
+      const revealButtons = document.querySelectorAll("[data-phone-reveal]");
+      
+      // Функция для отправки цели (сработает только 1 раз)
+      let goalTriggered = false;
+      const triggerMetrikaGoal = () => {
+        if (!goalTriggered) {
+          if (typeof ym === "function") {
+            // Укажите здесь ваш ID (105927324) и название цели (например, CONTACT_CLICK)
+            ym(105927324, "reachGoal", "CONTACT_CLICK");
+          }
+          goalTriggered = true; // Блокируем повторную отправку
+          console.log("Goal sent to Metrika"); // Для теста (потом можно удалить)
+        }
+      };
 
-      document.querySelectorAll("[data-phone]").forEach(a => a.href = "tel:" + PHONE);
+      // Настройка ссылок "Позвонить"
+      callButtons.forEach(a => {
+        a.href = "tel:" + PHONE;
+        a.addEventListener("click", triggerMetrikaGoal);
+      });
+
+      // Настройка кнопок "Показать номер"
       document.querySelectorAll("[data-phone-text]").forEach(el => el.textContent = masked);
 
       const reveal = () => {
+        // 1. Показываем номер
         document.querySelectorAll("[data-phone-text]").forEach(el => el.textContent = formatted);
         document.querySelectorAll("[data-phone-reveal]").forEach(btn => btn.classList.add("hidden"));
-        if (typeof ym === "function") { ym(105927324, "reachGoal", "phone_revealed"); }
+        
+        // 2. Отправляем цель в Метрику (через общую функцию с защитой от повтора)
+        triggerMetrikaGoal();
+        
         document.dispatchEvent(new CustomEvent("phone:reveal", {detail:{phone: PHONE}}));
       };
 
-      document.querySelectorAll("[data-phone-reveal]").forEach(btn => btn.addEventListener("click", reveal));
+      revealButtons.forEach(btn => btn.addEventListener("click", reveal));
     }
 
     function initSlider(){
